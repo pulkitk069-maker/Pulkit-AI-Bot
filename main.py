@@ -4,7 +4,8 @@ import os
 import random
 from threading import Thread
 from flask import Flask
-from config import BOT_TOKEN, ADMIN_USERNAME
+# Config se ab ADMIN_ID import kar rahe hain (USERNAME hata diya)
+from config import BOT_TOKEN, ADMIN_ID 
 from ai_engine import ask_gemini
 from utils import contains_bad_words, search_internet, read_pdf_file, create_voice_note, get_youtube_transcript
 
@@ -18,7 +19,7 @@ current_mood = "Friendly"
 total_messages_count = 0  
 start_time = time.time()  
 blocked_users = []
-voice_mode = False # Default Voice OFF
+voice_mode = False 
 
 # --- USER MAPPING ---
 USER_PERSONALITIES = {
@@ -45,24 +46,21 @@ def keep_alive():
 def send_welcome(message):
     bot.reply_to(message, "Namaste! Main Pulkit AI hu. 🤖\n\nFeatures:\n📸 Photo bhejo -> Main dekhunga\n🎤 Voice bhejo -> Main sununga\n📄 PDF bhejo -> Main padhunga\n📺 YouTube Link -> Main summary dunga\n🌐 /search -> Internet search")
 
-# --- 2. SUPER ADMIN COMMANDS ---
+# --- 2. SUPER ADMIN COMMANDS (ID BASED) ---
 @bot.message_handler(commands=['sleep', 'wake', 'mood', 'stats', 'status', 'wipe', 'say', 'block', 'voice', 'search'])
 def handle_admin(message):
     global bot_active, current_mood, total_messages_count, blocked_users, voice_mode
     
-    user_name = message.from_user.username
     command = message.text.split()[0]
     
-    # --- PUBLIC COMMANDS ---
-    
-    # MANUAL SEARCH 🌐
+    # --- PUBLIC COMMANDS (Search sabke liye hai) ---
     if command == "/search":
         query = message.text.replace("/search", "").strip()
         if query:
             bot.send_chat_action(message.chat.id, 'typing')
             results = search_internet(query)
             if results:
-                # Search result ko AI ke paas bhejo taaki wo dhang se bataye
+                # AI ko context ke saath bhej rahe hain
                 reply = ask_gemini(f"Search Results: {results}\nUser Question: {query}", message.from_user.id, message.from_user.first_name, current_mood)
                 bot.reply_to(message, reply)
             else:
@@ -71,10 +69,14 @@ def handle_admin(message):
             bot.reply_to(message, "Likh kar bhejo: /search IPL Score")
         return
 
-    # --- ADMIN ONLY CHECK ---
-    if not user_name or user_name != ADMIN_USERNAME:
+    # --- ADMIN ONLY CHECK (AB ID SE HOGA) ---
+    # Yahan hum check kar rahe hain ki message bhejne wala ADMIN_ID (Aap) hai ya nahi
+    # Username check hata diya gaya hai taaki confusion na ho
+    if message.from_user.id != ADMIN_ID:
         bot.reply_to(message, "Sorry, tum mere boss nahi ho! 🔒")
         return
+    
+    # --- ADMIN ACTIONS ---
     
     # 1. SLEEP
     if command == "/sleep":
@@ -157,7 +159,7 @@ def handle_all_messages(message):
     user_id = message.from_user.id
     user_name = message.from_user.first_name
     
-    # --- ID DETECTOR (Mahek ke liye) ---
+    # --- ID DETECTOR (Mahek ke liye - Terminal/Logs mein dikhega) ---
     print(f"ID CHECK: {user_id} | Name: {user_name}")
     # -----------------------------------
 
