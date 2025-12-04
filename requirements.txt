@@ -1,0 +1,10 @@
+pyTelegramBotAPI
+google-generativeai
+python-dotenv
+pillow
+requests
+duckduckgo-search
+pypdf
+edge-tts
+youtube-transcript-api
+flask
