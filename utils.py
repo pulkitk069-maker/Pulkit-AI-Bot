@@ -1,6 +1,7 @@
 from datetime import datetime
 import os
 import asyncio
+import pytz # India Time ke liye
 from config import BAD_WORDS
 
 # --- LIBRARIES ---
@@ -9,13 +10,17 @@ from duckduckgo_search import DDGS
 from pypdf import PdfReader
 from youtube_transcript_api import YouTubeTranscriptApi
 
-# 1. Time Awareness
+# 1. Time Awareness (INDIA TIME) 🇮🇳
 def get_time_greeting():
-    current_hour = datetime.now().hour
-    if 5 <= current_hour < 12: return "Good Morning"
+    # India Timezone set kar rahe hain
+    IST = pytz.timezone('Asia/Kolkata')
+    now_india = datetime.now(IST)
+    current_hour = now_india.hour
+    
+    if 4 <= current_hour < 12: return "Good Morning"
     elif 12 <= current_hour < 17: return "Good Afternoon"
     elif 17 <= current_hour < 21: return "Good Evening"
-    else: return "Raat ho gayi hai"
+    else: return "Late Night hai, so jao"
 
 # 2. Bad Word Filter
 def contains_bad_words(text):
@@ -60,7 +65,7 @@ def create_voice_note(text, output_file):
         print(f"Audio Error: {e}")
         return False
 
-# 6. YOUTUBE TRANSCRIPT (New Feature) 📺
+# 6. YOUTUBE TRANSCRIPT
 def get_youtube_transcript(video_url):
     try:
         if "v=" in video_url:
@@ -72,7 +77,6 @@ def get_youtube_transcript(video_url):
             
         transcript = YouTubeTranscriptApi.get_transcript(video_id)
         full_text = " ".join([i['text'] for i in transcript])
-        # Sirf shuru ke 4000 characters bhejenge
         return full_text[:4000] 
     except Exception as e:
         return None
