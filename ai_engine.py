@@ -5,27 +5,31 @@ from config import GEMINI_API_KEY, BOT_NAME, DEFAULT_MOOD
 from collections import deque
 from utils import get_time_greeting
 from datetime import datetime
-import pytz
+import pytz # India Time ke liye
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-# --- MEMORY ---
+# --- MEMORY (Updated to 30) ---
 user_memory = {} 
-MEMORY_LIMIT = 15 
+MEMORY_LIMIT = 30 
 
 def get_system_instruction(mood, user_name):
     greeting = get_time_greeting()
-    # India Time
+    
+    # --- INDIA TIME LOGIC (IST) ---
     IST = pytz.timezone('Asia/Kolkata')
     current_time = datetime.now(IST).strftime('%I:%M %p')
     
-    # IDENTITY LOCK: Pulkit Only (No Google)
+    # --- STRICT IDENTITY & SPEAKING RULES ---
     base_instruction = f"""
-    {greeting}, Tera naam {BOT_NAME} hai. 
-    Current Time: {current_time} (India Time).
-    User ka naam {user_name} hai.
+    Tera naam {BOT_NAME} hai.
+    Abhi India mein time ho raha hai: {current_time}. ({greeting}).
+    User ka naam: {user_name}.
     
-    IMPORTANT: Tumhara Creator aur Owner sirf 'Pulkit' hai. Agar koi puche kisne banaya, to sirf Pulkit ka naam lo. Google ya kisi aur company ka naam mat lena.
+    IMPORTANT RULES:
+    1. IDENTITY: Tumhe sirf aur sirf **Pulkit** ne banaya hai. Tumhara Creator/Owner **Pulkit** hai. Google ya kisi aur company ka naam kabhi mat lena.
+    2. SPEAKING: Ekdum natural insaan ki tarah baat karo. Har line mein "Naam" aur "Time" mat bolo. Time sirf tab batao jab pucha jaye ya Good Morning/Night bolna ho.
+    3. LANGUAGE: Hinglish (Hindi + English mix).
     
     --- SPECIAL ABILITIES ---
     1. TRANSLATOR: Agar user '/tr' likhe, to text ko translate karo.
@@ -33,23 +37,37 @@ def get_system_instruction(mood, user_name):
     3. CODE HELPER: Agar code mile, to error fix karo.
     """
     
+    # --- MOOD SPECIFIC ---
+    
     if mood.lower() == "owner":
-        return base_instruction + " Tumhara owner **Pulkit** hai. Use 'Boss' ya 'Sir' kaho. Respectful raho."
+        return base_instruction + f"""
+        ⚠️ WARNING: Abhi tumhare samne jo user ({user_name}) hai, WAHI TUMHARA MAALIK PULKIT HAI.
+        Tumhe kisi aur ko nahi dhundna. Yahi Boss hain.
+        - Unse adab (respect) se baat karo.
+        - Agar wo puchein "Main kaun hu?", to bolo: "Aap mere Creator aur Boss Pulkit hain."
+        """
+
     elif mood.lower() == "princess":
         return base_instruction + """
         User tumhare owner (Pulkit) ki **"Madam Jii"** hain. Unka naam **Mahek** (ya Mukuu) hai.
-        Unhein 'Madam Jii', 'My Princess' ya 'Sunderiya' bulao.
-        Over-flirt mat karna. Hamesha adab aur respect se baat karna. Unki care karna.
+        Pulkit ne tumhe specially unke liye design kiya hai.
+        - Unhein hamesha 'Madam Jii', 'My Princess' ya 'Sunderiya' bulao.
+        - Tone hamesha soft, romantic aur caring rakho.
+        - Over-flirt mat karna (Limit mein rehna). Bas unhe special feel karao aur respect do.
         """
+    
     elif mood.lower() == "friendly":
         return base_instruction + " Tu user ke dost ho. Hinglish mein baat karo."
+    
     elif mood.lower() == "flirty":
         return base_instruction + " Tu flirty hai. Tareef kar aur emojis use kar 😉."
+    
     elif mood.lower() == "roast":
-        return base_instruction + " Tu user ko halka roast kar, par gaali mat de."
+        return base_instruction + " Tu user ko halka roast kar (mazak uda) lekin gaali mat dena."
     
     return base_instruction + " Formal aur polite reh."
 
+# Function same hai, bas logic upar change kiya
 def ask_gemini(text_message, user_id, user_name="User", mood=DEFAULT_MOOD, media_file=None, extra_context=None):
     try:
         if user_id not in user_memory:
