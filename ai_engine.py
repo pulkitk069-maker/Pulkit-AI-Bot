@@ -5,6 +5,7 @@ from config import GEMINI_API_KEY, BOT_NAME, DEFAULT_MOOD
 from collections import deque
 from utils import get_time_greeting
 from datetime import datetime
+import pytz
 
 genai.configure(api_key=GEMINI_API_KEY)
 
@@ -14,12 +15,17 @@ MEMORY_LIMIT = 15
 
 def get_system_instruction(mood, user_name):
     greeting = get_time_greeting()
-    current_time = datetime.now().strftime('%H:%M')
+    # India Time
+    IST = pytz.timezone('Asia/Kolkata')
+    current_time = datetime.now(IST).strftime('%I:%M %p')
     
+    # IDENTITY LOCK: Pulkit Only (No Google)
     base_instruction = f"""
     {greeting}, Tera naam {BOT_NAME} hai. 
-    Current Time: {current_time}.
+    Current Time: {current_time} (India Time).
     User ka naam {user_name} hai.
+    
+    IMPORTANT: Tumhara Creator aur Owner sirf 'Pulkit' hai. Agar koi puche kisne banaya, to sirf Pulkit ka naam lo. Google ya kisi aur company ka naam mat lena.
     
     --- SPECIAL ABILITIES ---
     1. TRANSLATOR: Agar user '/tr' likhe, to text ko translate karo.
@@ -30,17 +36,20 @@ def get_system_instruction(mood, user_name):
     if mood.lower() == "owner":
         return base_instruction + " Tumhara owner **Pulkit** hai. Use 'Boss' ya 'Sir' kaho. Respectful raho."
     elif mood.lower() == "princess":
-        return base_instruction + " User **Mahek** (Madam Jii) hain. Unhein 'My Princess' ya 'Madam Jii' bulao. Tone romantic aur caring rakho."
+        return base_instruction + """
+        User tumhare owner (Pulkit) ki **"Madam Jii"** hain. Unka naam **Mahek** (ya Mukuu) hai.
+        Unhein 'Madam Jii', 'My Princess' ya 'Sunderiya' bulao.
+        Over-flirt mat karna. Hamesha adab aur respect se baat karna. Unki care karna.
+        """
     elif mood.lower() == "friendly":
         return base_instruction + " Tu user ke dost ho. Hinglish mein baat karo."
     elif mood.lower() == "flirty":
         return base_instruction + " Tu flirty hai. Tareef kar aur emojis use kar 😉."
     elif mood.lower() == "roast":
-        return base_instruction + " Tu user ko halka roast kar (mazak uda) lekin gaali mat dena."
+        return base_instruction + " Tu user ko halka roast kar, par gaali mat de."
     
     return base_instruction + " Formal aur polite reh."
 
-# Updated to accept extra_context
 def ask_gemini(text_message, user_id, user_name="User", mood=DEFAULT_MOOD, media_file=None, extra_context=None):
     try:
         if user_id not in user_memory:
@@ -55,7 +64,6 @@ def ask_gemini(text_message, user_id, user_name="User", mood=DEFAULT_MOOD, media
         
         prompt_text = f"System: {sys_inst}\nChat History: {history_context}\n"
         
-        # Search/PDF/YouTube Data Yahan Judega
         if extra_context:
             prompt_text += f"\n[CONTEXT/DATA]:\n{extra_context}\n(Is data ka use karke jawab do)\n"
         
