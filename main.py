@@ -20,18 +20,18 @@ start_time = time.time()
 blocked_users = []
 voice_mode = False 
 
-# --- USER MAPPING ---
+# --- USER MAPPING (Updated) ---
 USER_PERSONALITIES = {
-    5049549997: "Owner", 
-    6154862357: "Princess", # Madam Jii ki ID
+    5049549997: "Owner",    # Pulkit (Boss)
+    6154862357: "Princess", # Mahek (Madam Jii) - Added ✅
 }
 
 print("🤖 Pulkit AI (Telegram Version) is Live!")
 
-# --- FLASK SERVER (Keep Alive) ---
+# --- FLASK SERVER ---
 @app.route('/')
 def home():
-    return "Pulkit AI is Alive and Running! 🚀"
+    return "Pulkit AI is Running! 🚀"
 
 def run_http():
     app.run(host='0.0.0.0', port=8080)
@@ -67,7 +67,7 @@ def handle_admin(message):
             bot.reply_to(message, "Likh kar bhejo: /search IPL Score")
         return
 
-    # --- ADMIN ONLY CHECK ---
+    # --- ADMIN CHECK (ID Based) ---
     if message.from_user.id != ADMIN_ID:
         bot.reply_to(message, "Sorry, tum mere boss nahi ho! 🔒")
         return
@@ -119,8 +119,8 @@ def handle_all_messages(message):
     user_id = message.from_user.id
     user_name = message.from_user.first_name
     
-    # --- ID DETECTOR ---
-    print(f"ID CHECK: {user_id} | Name: {user_name}")
+    # ID Print (Optional: Rakh sakte ho check karne ke liye)
+    # print(f"ID CHECK: {user_id} | Name: {user_name}")
 
     if user_id in USER_PERSONALITIES:
         active_mood = USER_PERSONALITIES[user_id]
@@ -175,7 +175,7 @@ def handle_all_messages(message):
             bot.reply_to(message, "Mind your language! 🚫")
             return
         
-        # YouTube Logic
+        # YouTube
         if "youtube.com" in text_prompt or "youtu.be" in text_prompt:
             transcript = get_youtube_transcript(text_prompt)
             if transcript: extra_context = f"YOUTUBE:\n{transcript}"
