@@ -20,18 +20,37 @@ start_time = time.time()
 blocked_users = []
 voice_mode = False 
 
-# --- USER MAPPING (Updated) ---
+# --- USER MAPPING ---
 USER_PERSONALITIES = {
-    5049549997: "Owner",    # Pulkit (Boss)
-    6154862357: "Princess", # Mahek (Madam Jii) - Added ✅
+    5049549997: "Owner", 
+    6154862357: "Princess", 
 }
+
+# --- USER DATABASE (Broadcast ke liye) ---
+USER_FILE = "users.txt"
+
+def save_user(user_id):
+    if not os.path.exists(USER_FILE):
+        with open(USER_FILE, "w") as f: pass
+    
+    with open(USER_FILE, "r") as f:
+        users = f.read().splitlines()
+    
+    if str(user_id) not in users:
+        with open(USER_FILE, "a") as f:
+            f.write(f"{user_id}\n")
+
+def get_all_users():
+    if not os.path.exists(USER_FILE): return []
+    with open(USER_FILE, "r") as f:
+        return f.read().splitlines()
 
 print("🤖 Pulkit AI (Telegram Version) is Live!")
 
 # --- FLASK SERVER ---
 @app.route('/')
 def home():
-    return "Pulkit AI is Running! 🚀"
+    return "Pulkit AI is Alive and Running! 🚀"
 
 def run_http():
     app.run(host='0.0.0.0', port=8080)
@@ -43,10 +62,11 @@ def keep_alive():
 # --- 1. START COMMAND ---
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
+    save_user(message.from_user.id) # User ko save kar lo
     bot.reply_to(message, "Namaste! Main Pulkit AI hu. 🤖\n\nFeatures:\n📸 Photo bhejo -> Main dekhunga\n🎤 Voice bhejo -> Main sununga\n📄 PDF bhejo -> Main padhunga\n📺 YouTube Link -> Main summary dunga\n🌐 /search -> Internet search")
 
 # --- 2. SUPER ADMIN COMMANDS ---
-@bot.message_handler(commands=['sleep', 'wake', 'mood', 'stats', 'status', 'wipe', 'say', 'block', 'voice', 'search'])
+@bot.message_handler(commands=['sleep', 'wake', 'mood', 'stats', 'status', 'wipe', 'say', 'block', 'voice', 'search', 'reply', 'broadcast'])
 def handle_admin(message):
     global bot_active, current_mood, total_messages_count, blocked_users, voice_mode
     
@@ -67,13 +87,43 @@ def handle_admin(message):
             bot.reply_to(message, "Likh kar bhejo: /search IPL Score")
         return
 
-    # --- ADMIN CHECK (ID Based) ---
+    # --- ADMIN CHECK ---
     if message.from_user.id != ADMIN_ID:
         bot.reply_to(message, "Sorry, tum mere boss nahi ho! 🔒")
         return
     
     # --- ADMIN ACTIONS ---
-    if command == "/sleep":
+    
+    # 1. MANUAL REPLY (Human Takeover) 🎭
+    if command == "/reply":
+        try:
+            # Format: /reply 123456789 Hello kaise ho
+            parts = message.text.split()
+            target_id = parts[1]
+            reply_msg = " ".join(parts[2:])
+            
+            bot.send_message(target_id, reply_msg)
+            bot.reply_to(message, f"✅ Sent to {target_id}: {reply_msg}")
+        except:
+            bot.reply_to(message, "Error! Use: `/reply USER_ID Message`")
+
+    # 2. BROADCAST (Sabko bhejo) 📢
+    elif command == "/broadcast":
+        msg = message.text.replace("/broadcast", "").strip()
+        if msg:
+            users = get_all_users()
+            count = 0
+            for uid in users:
+                try:
+                    bot.send_message(uid, msg)
+                    count += 1
+                except:
+                    pass
+            bot.reply_to(message, f"📢 Broadcast sent to {count} users.")
+        else:
+            bot.reply_to(message, "Message to likho! (/broadcast Hello)")
+
+    elif command == "/sleep":
         bot_active = False
         bot.reply_to(message, "😴 Sone ja raha hu.")
     elif command == "/wake":
@@ -83,7 +133,8 @@ def handle_admin(message):
         uptime = int(time.time() - start_time)
         status = "Online ✅" if bot_active else "Sleeping 💤"
         v_status = "ON 🗣️" if voice_mode else "OFF 📝"
-        bot.reply_to(message, f"📊 **Stats:**\nStatus: {status}\nVoice: {v_status}\nMsgs: {total_messages_count}\nUptime: {uptime}s")
+        users_count = len(get_all_users())
+        bot.reply_to(message, f"📊 **Stats:**\nStatus: {status}\nVoice: {v_status}\nMsgs: {total_messages_count}\nTotal Users: {users_count}\nUptime: {uptime}s")
     elif command == "/voice":
         if "on" in message.text.lower():
             voice_mode = True
@@ -119,8 +170,19 @@ def handle_all_messages(message):
     user_id = message.from_user.id
     user_name = message.from_user.first_name
     
-    # ID Print (Optional: Rakh sakte ho check karne ke liye)
-    # print(f"ID CHECK: {user_id} | Name: {user_name}")
+    # Save User for Broadcast
+    save_user(user_id)
+
+    # --- SPY MODE: Forward Msg to Admin with ID ---
+    # Agar message bhejne wala ADMIN (Aap) nahi hai, to uska message aapko forward hoga
+    if user_id != ADMIN_ID:
+        msg_content = message.text if message.text else f"[{message.content_type}]"
+        # Spy Alert Format
+        spy_alert = f"🕵️‍♂️ **New Message:**\n**Name:** {user_name}\n**ID:** `{user_id}`\n**Msg:** {msg_content}"
+        try:
+            bot.send_message(ADMIN_ID, spy_alert, parse_mode="Markdown")
+        except: pass
+    # ---------------------------------------------
 
     if user_id in USER_PERSONALITIES:
         active_mood = USER_PERSONALITIES[user_id]
